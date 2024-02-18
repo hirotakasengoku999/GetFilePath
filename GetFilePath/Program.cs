@@ -1,45 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
-using System.Text.RegularExpressions;
 
 
 //１行ずつ処理する
 public class LineProcesser
 {
-    public string GetTargetFolder(string targetFoderConfigPath)
+    public static string GetTargetFolder(string targetFoderConfigPath)
     {
         // 設定したターゲットフォルダーを読み込む
         StreamReader sr = new StreamReader(targetFoderConfigPath);
         string targetFolder = sr.ReadLine();
         return targetFolder;
     }
-    public string GetTargetFilePaths(string targetFileConfigPath, string targetFolder)
+    public static string GetTargetFilePaths(string targetFileConfigPath, string targetFolder)
     {
-        string line;
-        string targetFilePaths = "";
-
-        FilePathLocator filePathLocator = new FilePathLocator();
+        StringBuilder sb = new StringBuilder();
 
         // 読み込むテキストファイル
-        StreamReader sr = new StreamReader(targetFileConfigPath);
+        string[] readText = File.ReadAllLines(targetFileConfigPath);
 
-        // 最初の行を読み込む
-        line = sr.ReadLine();
-
+        
         // ファイルの終わりまで読み込む
-        while (line != null)
+        foreach(string s in readText)
         {
-            targetFilePaths += filePathLocator.FindFilePaths(targetFolder, line);
-            //次の行
-            line = sr.ReadLine();
+            sb.Append(FilePathLocator.FindFilePaths(targetFolder, s) + "\n");
         }
-        sr.Close();
 
-        return targetFilePaths;
+
+        return sb.ToString();
     }
 }
 
@@ -47,9 +36,9 @@ public class LineProcesser
 //ファイルがどこにあるのかを探し、そのパスを返す
 public class FilePathLocator
 {
-    public string FindFilePaths(string targetFolderConfigPath, string targetFileName)
+    public static string FindFilePaths(string targetFolderConfigPath, string targetFileName)
     {
-        string result = "";
+        StringBuilder sb = new StringBuilder();
 
         // フォルダ内の全てのファイルパスを取得
         string[] filePaths = Directory.GetFiles(targetFolderConfigPath, targetFileName, SearchOption.AllDirectories);
@@ -61,22 +50,22 @@ public class FilePathLocator
             foreach (string filePath in filePaths)
             {
                 Console.WriteLine($"{filePath}");
-                result += $"{targetFileName},{filePath}\n";
+                sb.Append($"{targetFileName},{filePath}\n");
             }
         }
         else
         {
             Console.WriteLine($"{targetFileName}は見つかりませんでした");
-            result = $"{targetFileName},指定したファイルは見つかりませんでした";
+            sb.Append($"{targetFileName},指定したファイルは見つかりませんでした");
         }
 
-        return result;
+        return sb.ToString();
     }
 }
 
 public class TextWrite
 {
-    public void OutPutText(string outPutFile, string outTxt)
+    public static void OutPutText(string outPutFile, string outTxt)
     {
         using (StreamWriter sw = new StreamWriter(outPutFile, false, Encoding.GetEncoding("shift_jis")))
         {
@@ -99,12 +88,10 @@ class Program
         string targetFolderConfigPath = Path.Combine(configDirectory, "targetFolder.txt");
         string outPutFile = Path.Combine(outputDirectory, "outPut.csv");
 
-        LineProcesser lineProcesser= new LineProcesser();
-        string targetFolder = lineProcesser.GetTargetFolder(targetFolderConfigPath);
-        string outTxt = lineProcesser.GetTargetFilePaths(targetFileConfigPath, targetFolder);
+        string targetFolder = LineProcesser.GetTargetFolder(targetFolderConfigPath);
+        string outTxt = LineProcesser.GetTargetFilePaths(targetFileConfigPath, targetFolder);
         outTxt = $"ファイル名,フルパス\n{outTxt}";
-        TextWrite textWrite = new TextWrite();
-        textWrite.OutPutText(outPutFile, outTxt);
+        TextWrite.OutPutText(outPutFile, outTxt);
 
         Console.WriteLine("完了しました。何かキーを教えてください...");
         Console.ReadKey(); // ユーザーが何かキーを押すまで待機
